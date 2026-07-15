@@ -8,6 +8,8 @@ I used Claude Code (Anthropic) throughout this project:
 - **Implementation and verification:** It helped implement the review fixes and ran the verification loop after each change (project-wide grep for stale references, full `pytest` runs, and a live `curl` smoke test of every endpoint). That smoke test caught a latent bug the review hadn't: `get_watchlist()` crashed with a 500 because `WatchlistEntry` had no `film` relationship (see "Additional fix" below).
 - **Stress-testing the design arguments:** I used it as a devil's advocate on my Comment 4 and Comment 5 drafts. The main thing that changed as a result: my Comment 4 response originally leaned only on "discovery is good for the community"; the counterargument that streaming-service queues (the closest analogy users have) are private pushed me to ground the argument in what CineLog *already* exposes (collections and ratings have no privacy flag at all) and to acknowledge the expectation mismatch explicitly.
 
+
+
 ## Comment 1 — Rename
 
 **What I did:** Renamed `save_to_watchlist()` to `add_to_watchlist()` in `services/watchlist_service.py` to match the project's `verb_to_noun` convention (`add_to_collection()`, `remove_from_collection()`, `get_collection()`), and updated its docstring from "Save a film" to "Add a film."
@@ -75,11 +77,13 @@ Added a `public` parameter to `add_to_watchlist(user_id, film_id, public=True)` 
 
 **Endpoints:**
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/watchlist/<user_id>` | The user's watchlist, newest first |
-| POST | `/watchlist/<user_id>/add` | Add a film (`{"film_id": "<uuid>", "public": true}`, `public` optional) |
-| DELETE | `/watchlist/<user_id>/remove` | Remove a film (`{"film_id": "<uuid>"}`) |
+
+| Method | Endpoint                      | Description                                                             |
+| ------ | ----------------------------- | ----------------------------------------------------------------------- |
+| GET    | `/watchlist/<user_id>`        | The user's watchlist, newest first                                      |
+| POST   | `/watchlist/<user_id>/add`    | Add a film (`{"film_id": "<uuid>", "public": true}`, `public` optional) |
+| DELETE | `/watchlist/<user_id>/remove` | Remove a film (`{"film_id": "<uuid>"}`)                                 |
+
 
 **Design decisions:**
 
@@ -98,16 +102,20 @@ Added a `public` parameter to `add_to_watchlist(user_id, film_id, public=True)` 
 8. Add with explicit visibility: same as step 3 but `-d '{"film_id": "<film_id>", "public": false}'` → expect **201** with `"public": false`.
 9. Run the automated suite: `pytest tests/ -v` — 9 tests should pass.
 
+
+
 ## Final commit history
 
 Screenshot of `git log --oneline` (feature/watchlist):
 
-<!-- SCREENSHOT: add your git log --oneline screenshot here -->
+![git log --oneline on feature/watchlist](git-log-screenshot.png)
+
+The branch history is linear — every commit from `20c2505` up to `acfa711` is a conventional commit representing one logical change. (The `bbe206c` merge commit visible at the bottom of the screenshot belongs to `main` itself, from a PR merged upstream before this branch was rebased; there are no merge commits on the feature branch: `git log --merges origin/main..HEAD` returns nothing.) The screenshot was taken before the final `docs:` commit that embeds it, since a screenshot can't include the commit that adds it.
 
 Text of the same history for reference:
 
 ```
-10e811b docs: add pr-response.md with visibility and sort order decisions
+acfa711 docs: add pr-response.md with visibility and sort order decisions
 15c253e test: add sort order test for get_watchlist
 7b4fcb9 fix: add film relationship to WatchlistEntry so get_watchlist can serialize films
 ba838b4 feat: add public visibility parameter to add_to_watchlist endpoint
@@ -122,5 +130,3 @@ e2cabea fix: rename save_to_watchlist to add_to_watchlist per naming convention
 d06a82d fix: update film retrieval method to use db.session.get in collection and watchlist services
 20c2505 feat: add watchlist model, service, and endpoints
 ```
-
-(The `docs:` commit hash shown is the pre-amend hash; the history was amended once to embed this log text.)
